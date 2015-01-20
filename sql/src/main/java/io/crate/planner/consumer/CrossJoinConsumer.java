@@ -103,7 +103,8 @@ public class CrossJoinConsumer implements Consumer {
                 return null;
             }
 
-            if (statement.querySpec().orderBy() != null && statement.querySpec().orderBy().isSorted()) {
+            boolean isSorted = statement.querySpec().orderBy() != null && statement.querySpec().orderBy().isSorted();
+            if (isSorted) {
                 context.validationException(new ValidationException("Query with CROSS JOIN doesn't support ORDER BY"));
                 return null;
             }
@@ -208,8 +209,8 @@ public class CrossJoinConsumer implements Consumer {
                 );
                 queryThenFetchNodes.add(qtf);
             }
-            NestedLoopNode nestedLoopNode = toNestedLoop(queryThenFetchNodes, queryLimit, queryOffset);
-
+            NestedLoopNode nestedLoopNode = toNestedLoop(queryThenFetchNodes, queryLimit, queryOffset, isSorted);
+    
             /**
              * TopN for:
              *
@@ -274,22 +275,24 @@ public class CrossJoinConsumer implements Consumer {
             return result;
         }
 
-        private NestedLoopNode toNestedLoop(List<? extends PlanNode> sourcePlanNodes, int limit, int offset) {
+        private NestedLoopNode toNestedLoop(List<? extends PlanNode> sourcePlanNodes, int limit, int offset, boolean isSorted) {
             if (sourcePlanNodes.size() == 2) {
                 return new NestedLoopNode(
                         sourcePlanNodes.get(0),
                         sourcePlanNodes.get(1),
                         false,
                         limit,
-                        offset
+                        offset,
+                        isSorted
                 );
             } else if (sourcePlanNodes.size() > 2) {
                 return new NestedLoopNode(
                         sourcePlanNodes.get(0),
-                        toNestedLoop(sourcePlanNodes.subList(1, sourcePlanNodes.size()), limit, offset),
+                        toNestedLoop(sourcePlanNodes.subList(1, sourcePlanNodes.size()), limit, offset, isSorted),
                         false,
                         limit,
-                        offset
+                        offset,
+                        isSorted
                 );
             }
             return null;
