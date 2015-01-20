@@ -139,7 +139,11 @@ public class CrossJoinConsumer implements Consumer {
              */
             Map<TableRelation, RelationContext> relations = new IdentityHashMap<>(statement.sources().size());
             WhereClause whereClause = statement.querySpec().where();
+
             Symbol query = null;
+            if (whereClause != null) {
+                query = whereClause.query();
+            }
             for (AnalyzedRelation analyzedRelation : statement.sources().values()) {
                 if (!(analyzedRelation instanceof TableRelation)) {
                     context.validationException(new ValidationException("CROSS JOIN with sub queries is not supported"));
@@ -153,8 +157,7 @@ public class CrossJoinConsumer implements Consumer {
 
                 RelationContext relationContext = new RelationContext();
 
-                if (whereClause != null && whereClause.hasQuery()) {
-                    query = whereClause.query();
+                if (query != null) {
                     QuerySplitter.SplitQueries splitQueries = QuerySplitter.splitForRelation(query, analyzedRelation);
                     if (splitQueries.relationQuery() == null) {
                         relationContext.whereClause = WhereClause.MATCH_ALL;
